@@ -1,0 +1,6 @@
+# TextMate configuration
+# Setting TM_RUN_TARGET to be picked up by my Run Javascript Command
+# Currently set up to run the files with some related 'test' code. 
+
+[hvif.js]
+TM_RUN_TARGET = "${TM_PROJECT_DIRECTORY}/test/test.js"

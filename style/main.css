@@ -1,0 +1,292 @@
+/* Vertical Rhythm
+/* =============== */
+
+html.debug {
+  /* show the 1rem baseline rhythm */
+  background:repeating-linear-gradient(to bottom, #0000, #0000 calc(1rem - 1px), #e0e0e0 calc(1rem - 1px), #e0e0e0 1rem, #0000 1rem);
+}
+
+html.debug * {
+  outline:1px solid rgba(0,0,0,.6);
+  opacity:.9;
+}
+
+/* Establish a vertial rhythm by using
+  one rem unit as a global line-height unit */
+
+html {
+  font-size:24px;
+  font-size:var(--line-height-global, 24px);
+  line-height:1;
+  font-family:Sans-Serif;
+  margin:0;
+  padding:0;
+}
+
+body {
+  font-size:16px;
+  font-size:var(--font-size-body, 16px);
+  line-height:1rem;
+  margin:0;
+  padding:0;
+}
+
+* {
+  box-sizing:border-box;
+  line-height:1rem;
+}
+
+*:not(h1,h2,h3,h4,h5,h6) {
+  font-size:inherit;
+}
+
+/* Block elements followed by a blank line */
+hr,p,ol,ul,dl,table,form,blockquote,pre,figure,img,video,canvas,h1,h2 {
+  display:block;
+  margin-top:0;
+  margin-bottom:1rem;
+}
+
+/* No extra line after :last-child */
+hr:last-child,p:last-child,ol:last-child,ul:last-child,dl:last-child,table:last-child,form:last-child,blockquote:last-child,pre:last-child,figure:last-child,img:last-child,video:last-child,canvas:last-child,h1:last-child,h2:last-child {
+  margin-bottom:0;
+}
+
+/* Block elements without extra line */
+header,main,aside,article,footer,nav,div,dd,dt,fieldset,legend,figcaption,h3,h4,h5,h6,label {
+  display:block;
+  margin-top:0;
+  margin-bottom:0;
+}
+
+
+/* Implementation of tracks / horizontal metrics system
+  -track and -track-snug modifiers */
+
+.-track {
+  display:block;
+  padding-left:var(--track-left) !important;
+  padding-right:var(--track-right) !important;
+}
+
+/* -snug elements ignore the parent -track's horizontal padding
+    and set their padding in such a way that their content box
+    aligns with the content box of the track. */
+
+.-track-snug {
+  display:block;
+  margin-left:calc(-1 * var(--track-left));
+  margin-right:calc(-1 * var(--track-right));
+  padding-left:var(--track-left);
+  padding-right:var(--track-right);
+}
+
+html.debug .-track {
+  /* show the paddings */
+  background-image:
+    linear-gradient(to right, #f006 var(--track-left, 0), #0000 var(--track-left, 0)),
+    linear-gradient(to left, #f006 var(--track-right, 0), #0000 var(--track-right, 0));
+}
+
+/** End of Rhyme / Vertical Rhytm Css Framework **/
+
+
+/* Console
+/* ====== */
+
+.Console {
+  height:10rem;
+  overflow-y:scroll;
+  padding-bottom:1rem;
+  margin-bottom:2rem;
+  border-top:1px solid #ccc;
+  border-bottom:1px solid #ccc;
+  font-size:13px;
+}
+.Console .error { color: red; }
+.Console .warn { color:orange;}
+
+
+/* General page markup
+/* =================== */
+
+path:not([fill]), rect:not([fill]) {
+  fill:none;
+}
+html {
+  font-size:22.5px;
+}
+body {
+  /* assume .-track */
+  font-size:15px;
+  color:#222;
+  margin:4rem 0;
+  background: linear-gradient(to bottom, #0002 -10rem, #0002 1rem, #0000 1rem, #0000) no-repeat;
+  --track-left:5rem;
+  --track-right:5rem;
+}
+p {
+  width:23rem;
+}
+h1 {
+  line-height:2rem;
+}
+/* 'Desktop' with icons
+/* ==================== */
+
+.Desktop {
+  /* assume .-track-snug */
+  background:#285286;
+  padding:3rem;
+  color:white;
+}
+.filename {
+  line-height:3rem;
+  display:inline-block;
+  white-space:nowrap;
+  width:15em;
+  overflow:hidden;
+  mask-image:linear-gradient(to left, #0000 .4rem, #000 1.5rem, #000);
+  -webkit-mask-image:linear-gradient(to left, #0000 .4rem, #000 1.5rem, #000);
+}
+.filename:hover {
+  cursor:pointer;
+  text-decoration:underline;
+}
+.filename .haikon {
+  display:inline-block;
+  margin-right:.5ex;
+  font-size:24px;
+}
+
+
+/* Inspector
+/* ========= */
+
+.Inspector {
+  position:relative;
+  border:1px solid #e0e0e0;
+  margin:4rem 0 3rem;
+  padding:0 0 0 30rem;
+  clear:both;
+}
+
+.Inspector .title {
+  margin:-1.5rem 0 2rem -30rem;
+  transform:translate(-2px, -.2rem);
+  padding:.05rem 3em .05rem 1.2em;
+  line-height:1.5rem;
+  font-size:1.1em;
+  float:left;
+  background:linear-gradient(rgb(255, 226, 110) 0%, rgb(255, 202, 0) 100%);
+  border: 1px solid #FFF2C2;
+  border:1px solid #e0e0e0;
+}
+
+.Inspector .layers {
+  margin-left:-15rem;
+  width:15rem;
+  float:left;
+}
+
+.Inspector .styles {
+  clear:both;
+  margin-left:-30rem;
+  padding:.5rem .5rem 0;
+  border-top:1px solid #ddd;
+}
+
+.Inspector .layers,
+.Inspector .info,
+.Inspector .wrap {
+  height:15rem;
+  overflow-y:auto;
+  font-size:.9em;
+}
+
+.Inspector .style {
+  width:2rem;
+  height:2rem;
+  margin:0 .5rem .5rem 0;
+  display:inline-block;
+  line-height:2.5rem;
+  vertical-align:top;
+  border-radius:.4em;
+  border:1px solid #666;
+  border-right:1px solid #999;
+  border-bottom:1px solid #ddd;
+}
+
+.Inspector .info {
+  color:white;
+  background:#344;
+  padding:1em 1rem;
+  margin:0;
+}
+
+.Inspector .wrap {
+  margin-left:-30rem;
+  width:15rem;
+  height:15rem;
+  float:left;
+  position:relative;
+  border-right:1px solid #e0e0e0;
+  background:
+    /*repeating-linear-gradient(to bottom left, #0000, #0000 1rem, #0000001a 1rem, #0000001a 2rem, #0000 2rem),*/
+    repeating-linear-gradient(to bottom right, #0000, #0000 1rem, #0000001a 1rem, #0000001a 2rem, #0000 2rem);
+}
+
+.Inspector .layer, .styles>* {
+  min-height:2rem;
+}
+.layer:hover, .styles>*:hover {
+  background:#efefef;
+  cursor:pointer;
+}
+
+.layer.-selected .swatch,
+.styles>.color.-selected,
+.styles>.gradient.-selected {
+  box-shadow:0 0 0 2px white, 0 0 0 5px #2A8DFE;
+}
+
+.wrap .outlines {
+  z-index:1000;
+}
+.outlines {
+  pointer-events:none;
+}
+.outlines path, .outlines line, .outlines circle, .outlines rect {
+  vector-effect:non-scaling-stroke;
+  vector-effect:non-scaling-size;
+  stroke-width:1;
+  stroke:red;
+}
+.wrap svg {
+  position:absolute;
+  width:15rem;
+  height:15rem;
+}
+
+.Inspector .layer {
+  font-style:italic;
+  color:#333;
+  border-bottom:1px solid #e0e0e0;
+  padding:1em;
+  height:1.5rem;
+}
+
+.layers .swatch { 
+  width:1.3rem;
+  height:1.3rem;
+  border-radius:1rem;
+  margin-right:1em;
+  border:1px solid #e0e0e0;
+  display:inline-block;
+  margin-bottom:-.4rem;
+  margin-top:-.5rem;
+}
+.layers .swatch::after { 
+  content:' ';
+}
+
