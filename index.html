@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HVIF parser in JavaScript</title>
+  <link rel="stylesheet" href="style/main.css">
+  <script src="./scripts/console.js"></script>
+<script src="./lib/tinytar.min.js"></script>
+</head>
+<body class=-track>
+
+<h1>Haiku Vector Icon File Format</h1>
+
+<p>
+  This is a test page for Haikon, my javascript library for parsing HVIF vector icon files. 
+  The github project project is here: <a href=https://github.com/alwinb/haikon-js>haikon-js</a>. 
+
+<p>
+  There is quite a nice article about the format here: <a href=http://blog.leahhanson.us/post/recursecenter2016/haiku_icons.html>500 Byte Images</a>. 
+  There is also a <a href=https://en.wikipedia.org/wiki/Haiku_Vector_Icon_Format>Wikipedia</a> page. 
+
+<p>
+  I used this page for development and debugging. 
+  So it has its own in–page console; a section with example HVIF files rendered to svg in the browser, and an Inspector tool that looks a little bit  like an editor, but it is just an inspector. 
+  The example icons on this page are the haikuos icons, they can be found at <a href=https://github.com/darealshinji/haiku-icons>haiku-icons</a>. 
+
+<p>
+  Since it doesn't really make sense to make one HTTP request for every tiny icon file, I have packed them together into a single .tar file,
+  and I am using <a href=https://github.com/kravets-levko/tinytar>tinytar</a> in the browser to unpack them.
+
+<script> // Replace the console
+  window.console = new Console ()
+  document.body.append (console.elem)
+  console.elem.classList.add ('-track-snug')
+  console.info ('In-page console')
+  window.addEventListener ('error', evt => console.errorHandler (evt), { capture:true })
+</script>
+
+<!-- these are not in the head so that they can use the in-page console, just for debugging -->
+<script src="./scripts/hvif.js"></script>
+<script src="./scripts/svg.js"></script>
+<script src="./scripts/inspector.js"></script>
+<script>
+
+function getIcons (url, callback) {
+  const req = new XMLHttpRequest ()
+  req.responseType = "arraybuffer"
+  let success = false
+  req.open ('GET', url)
+  req.onload = evt => callback (req.response)
+  req.send ()
+}
+
+var iconsToInspect = {
+  'App_Icon-O-Matic': 0,
+  'App_BeVexed': 0,
+  'App_Bikeshed': 0,
+  'System_Kernel': 0,
+  'App_bootman': 0,
+  'App_BSnow': 0,
+  'App_Calculator': 0,
+  'Alert_Idea': 0,
+  'File_Archive_BZ2': 0,
+  'Action_GoBack': 0,
+  'Misc_TCF_LightBulb': 0,
+  'Misc_IntelRenderer': 0,
+  'Website_Comment-add': 0,
+  'Server_Syslog': 0,
+  'App_Tracker': 0,
+  'Device_Harddisk': 0,
+  'Website_Comment': 0,
+  'Trash_Empty': 0,
+  'Trash_Full': 0,
+  'Server_Bluetooth': 0,
+  'Server_Bluetooth_2': 0,
+}
+
+const desktop = Dom ('div.Desktop.-track-snug')
+document.body.append (desktop)
+
+getIcons ('./examples/haiku-icons.tar', buffer => {
+  const items = tinytar.untar (new Uint8Array (buffer))
+  let count = 0
+  var start = new Date ()
+
+  function* renderAll () {
+    for (let i=0, l = items.length; i<l; i++) if (items[i].type === 0) {
+      count++
+      const icon = Haikon.parse (items[i].data)
+      const svg = HaikonSvg.renderIcon (icon)
+      let name = items[i].name.split ('/') .pop ()
+      if (name in iconsToInspect) iconsToInspect[name] = icon // pfff
+      const div = Dom ('div.filename', svg, ' ', name)
+      yield div
+    }
+  }
+
+  desktop.append (... renderAll ())
+  var dt = new Date () - start
+  log ('Parsing and converting', count, 'icons to svg, took', dt, 'milliseconds. ')
+
+
+  for (let name in iconsToInspect) {
+    const view = new Inspector ()
+    document.body.insertBefore (view.elem, desktop)
+      view.show (iconsToInspect[name], name)
+  }
+
+})
+
+
+</script>
+</body>
+</html>
