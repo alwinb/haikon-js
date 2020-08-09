@@ -1,7 +1,7 @@
 (global => {
 const svgns = 'http://www.w3.org/2000/svg'
 const htmlns = 'http://www.w3.org/1999/xhtml'
-const log = (...args) => globalThis.console.log (...args)
+const log = (...args) => console.log (...args)
 const setProto = Object.setPrototypeOf
 
 // DOM Utils 
@@ -63,6 +63,17 @@ function printMatrix ([a,b,c,d,e,f]) {
   return `matrix(${[a,b,c,d, e*102, f*102].join(' ')})` // leaving the translate for now...
 }
 
+function printPath (...paths) {
+  return [..._renderPaths (paths)] .join (' ')
+}
+
+function printTransform (transform) {
+  // TODO properly check types! currently: translate or matrix
+  return transform._tag !== 'matrix'
+    ? `${transform._tag}(${[...transform].join (' ')})`
+    :  printMatrix (transform)
+}
+
 // Svg Builders
 // ------------
 // 6528 units = 64px
@@ -86,23 +97,15 @@ function renderShape (shape, icon, id) {
 
   // Render the paths to a compound <path> element
   const paths = shape.pathIndices.map (i => icon.paths[i])
-  const d = [..._renderPaths (paths)].join (' ')
+  const d = printPath (...paths)
   const pel = Svg ('path')
-  setProps (pel, { d })
-
-  // Render the transform attribute, to be applied below
-  let transform = null
-  if (shape.transform) {
-    // TODO properly ckeck types
-    transform = shape.transform._tag !== 'matrix'
-      ? `${shape.transform._tag}(${[...shape.transform].join (' ')})`
-      :  printMatrix (shape.transform)
-    setProps (pel, { transform })
-  }
+    setProps (pel, { d })
+  if (shape.transform)
+    setProps (pel, { transform: printTransform (shape.transform) })
 
   const effects = shape.transformers||[]
   if (effects.length > 1)
-    console.warn ('TODO support multiple effects; used on icon id', id+':', effects.map (_ => _._tag ? _._tag : 'fill') )
+    console.warn ('#'+id, '('+icon.filename+')', 'TODO: support multiple effects;', effects.map (_ => _._tag ? _._tag : 'fill') )
 
   // Assuming for now there's at most one effect/transformer
   let effect = { _tag:'fill' }
@@ -226,5 +229,5 @@ function* _renderPaths (paths) {
   }
 }
 
-global.HaikonSvg = { colorCss, styleCss, gradientCss, renderShape, renderIcon, _renderPaths }
+global.HaikonSvg = { colorCss, styleCss, gradientCss, renderShape, renderIcon, _renderPaths, printPath, printTransform }
 })(globalThis)

@@ -40,7 +40,8 @@
 <script src="./scripts/hvif.js"></script>
 <script src="./scripts/svg.js"></script>
 <script src="./scripts/inspector.js"></script>
-<script>
+<script>{
+const log = console.log.bind (console)
 
 function getIcons (url, callback) {
   const req = new XMLHttpRequest ()
@@ -86,9 +87,9 @@ getIcons ('./examples/haiku-icons.tar', buffer => {
   function* renderAll () {
     for (let i=0, l = items.length; i<l; i++) if (items[i].type === 0) {
       count++
-      const icon = Haikon.parse (items[i].data)
-      const svg = HaikonSvg.renderIcon (icon)
       let name = items[i].name.split ('/') .pop ()
+      const icon = Haikon.parse (items[i].data, name)
+      const svg = HaikonSvg.renderIcon (icon)
       if (name in iconsToInspect) iconsToInspect[name] = icon // pfff
       const div = Dom ('div.filename', svg, ' ', name)
       yield div
@@ -109,6 +110,6 @@ getIcons ('./examples/haiku-icons.tar', buffer => {
 })
 
 
-</script>
+}</script>
 </body>
 </html>

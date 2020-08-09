@@ -109,7 +109,7 @@ Matrix: float24 times six
 The first shape will be the lower layer. 
 */
 
-function parseIcon (data) {
+function parseIcon (data, filename = null) {
   let pos = 0
   return parse ()
 
@@ -123,7 +123,7 @@ function parseIcon (data) {
     const shapes = repeat (data [pos++], readShape)
     if (pos !== data.length)
       throw new Error ('Additional padding after hvif file')
-    return { styles, paths, shapes }
+    return { filename, styles, paths, shapes }
   }
 
   function repeat (count, reader) {

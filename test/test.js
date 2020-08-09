@@ -17,7 +17,7 @@ var sample = 'Website_Comment'
 var sample = 'App_Icon-O-Matic'
 
 var data = fs.readFileSync (dir + sample)
-var result = parseIcon (data)
+var result = parseIcon (data, sample)
 
 log (util.inspect (result, { depth:100 }))
 
