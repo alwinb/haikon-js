@@ -34,7 +34,7 @@ class Inspector {
     })
 
     icon.shapes.forEach ((shape, shapeIndex) => {
-      this.layers.append (layerElement (shape, shapeIndex, icon, this))
+      this.layers.insertBefore (layerElement (shape, shapeIndex, icon, this), this.layers.firstChild)
     })
 
     const svg = HaikonSvg.renderIcon (icon).getElementsByTagName ('svg') [0]
@@ -47,9 +47,8 @@ class Inspector {
   selectShape (shapeIndex, icon) {
     // Should be done via component state and bubble event
     const shape = icon.shapes[shapeIndex]
-    const paths = shape.pathIndices.map (i => icon.paths[i])
     this.outlines.innerHTML = ''
-    this.outlines.append (renderOutlines (paths))
+    this.outlines.append (renderOutlines (shape, icon))
     //this.outlines.append (renderGrid())
     this.info.innerHTML = JSON.stringify (shape, null, 2)
   }
@@ -128,40 +127,27 @@ function paletteElement (style, styleIndex, view) {
 // Outlines/ Inspectors Svg Builders 
 // ---------------------------------
 
-function renderOutlines (paths) {
+function renderOutlines (shape, icon) {
+  const paths = shape.pathIndices.map (i => icon.paths[i])
   const g = Svg ('g')
-  for (const path of paths) {
+  const el = Svg ('path')
+    g.append (el)
+    setProps (el, { d:HaikonSvg.printPath (...paths )})
+  if (shape.transform)
+    setProps (g, { transform:HaikonSvg.printTransform (shape.transform) })
 
-    if (path.type === 'points') {
-      const el = Svg ('path')
-      setProps (el, { d:[...HaikonSvg._renderPaths (path)] .join (' ')})
-      g.append (el)
+  for (const { type, points } of paths) {
+    if (type === 'points') {
+      for (let i=0, l=points.length; i<l; i+=2)
+        g.append (point (...points.slice(i, i+2)))
     }
-
-    // TODO; convert curves to sections, minimal ones
-    else if (path.type === 'curves') {
-      const { points } = path
-      // log (path)
-      const el = Svg ('path')
-      var [x0, y0, xin, yin, xout, yout] = points.slice (0, 6)
-      const d = ['M', x0, y0]
-      let i = 0
-      for (let i=0, l=path.points.length; i<l;) {
-        d.push ('C', xout, yout)
-        const [x, y, xin, yin, xout_, yout_] = points.slice (i, i+=6)
-        //[xout, yout] = [xout_, yout_]
-        g.append (controls (x, y, xin, yin, xout_, yout_))
-        xout = xout_
-        yout = yout_
-        d.push (xin, yin, x, y)
-        // FIXME on non-closed paths this leaves an incomplete curvto command
-      }
-      if (path.closed)
-        d.push (xout, yout, xin, yin, x0, y0, 'Z' )
-      el.setAttribute ('d', d.join (' '))
-      g.append (el)
+    else if (type === 'curves') {
+      for (let i=0, l=points.length; i<l; i+=6)
+        g.append (controls (...points.slice (i, i+6)))
     }
   }
+  
+  // Now the gradients
   return g
 }
 
