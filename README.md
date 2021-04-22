@@ -9,8 +9,6 @@ There is quite a nice article about the format here: [500 Byte Images][2]. There
 
 This is all there is yet. Some glitches remain to be fixed and a few things are not (yet) supported, such as a.o. conic– and diamond gradients (they have to be emulated as svg does not support them natively). 
 
-No node package yet, it just runs in the browser. 
-
 [1]: https://alwinb.github.io/haikon-js/
 [2]: http://blog.leahhanson.us/post/recursecenter2016/haiku_icons.html
 [3]: https://en.wikipedia.org/wiki/Haiku_Vector_Icon_Format

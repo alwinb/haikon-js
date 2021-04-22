@@ -1,4 +1,4 @@
-(global => {
+const { setPrototypeOf:setProto } = Object
 const log = console.log.bind (console)
 
 // HVIF file format
@@ -50,8 +50,8 @@ const pathFlags = { closed:1<<1, commands:1<<2, points:1<<3 }
 // A single controlTag is stored in two _bits_ thus four of them can be stored per byte. 
 
 const pointTags = { 
-  CURVE: 3,  // Point with two control points;
-  LINE: 2,  // Point with no control points. 
+  CURVE: 3, // Point with two control points;
+  LINE:  2, // Point with no control points. 
   HLINE: 1, // No control points, horizontally aligned with previous point. 
   VLINE: 0, // No controls, vertically aligned with previous point. 
 }
@@ -253,8 +253,7 @@ function parseIcon (data, filename = null) {
     const stops = readStops (stopCount, colorFormat)
     return { tag:styleTags.GRADIENT, type, matrix, stops }
   }
-
-
+  
   function readStops (stopCount, colorFormat) {
     const stops = []
     for (; stopCount > 0; stopCount--) {
@@ -265,7 +264,6 @@ function parseIcon (data, filename = null) {
     stops.sort ((a,b) => a.offset < b.offset ? -1 : a.offset > b.offset ? 1 : 0)
     return stops
   }
-
 
   // Called from readPath
 
@@ -362,13 +360,16 @@ function parseFloat24 ([b1, b2, b3]) {
   return f
 }
 
-global.Haikon = {
-  parse:parseIcon,
-  parseIcon,
-  colorTags,
-  colourTags:colorTags,
+
+// Exports
+// -------
+
+const constants = {
+  colorTags, colourTags:colorTags,
+  styleTags, 
   gradientTypes,
   lineCaps,
   lineJoins,
 }
-})(globalThis)
+
+module.exports = { constants, parseIcon, parse:parseIcon }

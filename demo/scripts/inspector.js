@@ -34,7 +34,7 @@ class Inspector {
     })
 
     icon.shapes.forEach ((shape, shapeIndex) => {
-      this.layers.append (layerElement (shape, shapeIndex, icon, this))
+      this.layers.insertBefore (layerElement (shape, shapeIndex, icon, this), this.layers.firstChild)
     })
 
     const svg = HaikonSvg.renderIcon (icon).getElementsByTagName ('svg') [0]
