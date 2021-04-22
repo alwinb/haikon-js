@@ -33,10 +33,10 @@ function* renderIt ({ tagName, attributes:atts, children }) {
 // Exports
 // -------
 
-const svg = require ('./scripts/svg')
+const svg = require ('./src/svg')
 assign (svg, svg._renderers (createElementNS))
 
 module.exports = {
-  hvif: require ('./scripts/hvif'),
+  hvif: require ('./src/hvif'),
   svg
 }

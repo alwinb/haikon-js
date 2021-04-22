@@ -37,7 +37,7 @@
 </script>
 
 <!-- these are not in the head so that they can use the in-page console, just for debugging -->
-<script src="./dist/haikon.min.js"></script>
+<script src="./lib/haikon.min.js"></script>
 <script src="./scripts/inspector.js"></script>
 <script>{
 const log = console.log.bind (console)
@@ -98,7 +98,7 @@ function Worker (iterator, cb) {
 const desktop = Dom ('div.Desktop.-track-snug')
 document.body.append (desktop)
 
-getIcons ('./examples/haiku-icons.tar', buffer => {
+getIcons ('haiku-icons.tar', buffer => {
   const items = tinytar.untar (new Uint8Array (buffer))
   let count = 0
 
