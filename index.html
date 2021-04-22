@@ -75,37 +75,57 @@ var iconsToInspect = {
   'Server_Bluetooth_2': 0,
 }
 
+
+// Pseudo- thread / worker loop
+
+function Worker (iterator, cb) {
+  let _timeout, started, batches = 0
+
+  this.run = () =>
+    _timeout || (started = new Date, setTimeout (tick (), 0))
+
+  // where
+  function tick () {
+    const _start = new Date; batches++
+    do if (iterator.next () .done)
+      return cb ({ started, batches })
+    while (new Date - _start < 150)
+    _timeout = setTimeout (tick, 10)
+  }
+}
+
+
 const desktop = Dom ('div.Desktop.-track-snug')
 document.body.append (desktop)
 
 getIcons ('./examples/haiku-icons.tar', buffer => {
   const items = tinytar.untar (new Uint8Array (buffer))
   let count = 0
-  var start = new Date ()
 
   function* renderAll () {
-    for (let i=0, l = items.length; i<l; i++) if (items[i].type === 0) {
+    for (let i=0, l=items.length; i<l; i++) if (items[i].type === 0) {
       count++
       let name = items[i].name.split ('/') .pop ()
       const icon = Haikon.parse (items[i].data, name)
       const svg = HaikonSvg.renderIcon (icon)
-      if (name in iconsToInspect) iconsToInspect[name] = icon // pfff
+      //
       const div = Dom ('div.filename', svg, ' ', name)
-      yield div
+      desktop.append (div)
+      //
+      if (name in iconsToInspect) {
+        const view = new Inspector ()
+        document.body.insertBefore (view.elem, desktop)
+        view.show (icon, name)
+      }
+      yield
     }
   }
 
-  desktop.append (... renderAll ())
-  var dt = new Date () - start
-  log ('Parsing and converting', count, 'icons to svg, took', dt, 'milliseconds. ')
+  const cb = ({started, completed, batches}) =>
+    log ('Parsing and converting', count, 'icons to svg, took', new Date - started, 'milliseconds in', batches, 'batches')
 
-
-  for (let name in iconsToInspect) {
-    const view = new Inspector ()
-    document.body.insertBefore (view.elem, desktop)
-      view.show (iconsToInspect[name], name)
-  }
-
+  new Worker (renderAll (), cb)
+    .run ()
 })
 
 
