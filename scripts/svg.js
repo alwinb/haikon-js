@@ -1,30 +1,6 @@
-(global => {
-const svgns = 'http://www.w3.org/2000/svg'
-const htmlns = 'http://www.w3.org/1999/xhtml'
-const log = (...args) => console.log (...args)
-const setProto = Object.setPrototypeOf
+const { setPrototypeOf:setProto } = Object
+const log = console.log.bind (console)
 
-// DOM Utils 
-// ---------
-
-const Svg = (...args) => _DomNS (svgns, 'g', ...args)
-const Dom = (...args) => _DomNS (htmlns, 'div', ...args)
-
-function _DomNS (ns, _default, tagname, ...subs) {
-  var names = tagname.split ('.')
-  tagname = names.length ? names.shift () : _default
-  var el = document.createElementNS (ns, tagname)
-  if (names.length)
-    setProps (el, { 'class': names.join (' ') })
-  el.append (...subs)
-  return el
-}
-
-function setProps (el, obj) {
-  for (const [k,v] of Object.entries (obj))
-    el.setAttribute (k, v)
-  return el
-}
 
 // CSS builders
 // ------------
@@ -32,7 +8,7 @@ function setProps (el, obj) {
 function colorCss ([tag, ...bytes]) {
   if (tag === Haikon.colorTags.KA || tag === Haikon.colorTags.K)
     bytes.unshift (bytes[0], bytes[0])
-  return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join(''))
+  return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join (''))
 }
 
 function styleCss (style) {
@@ -63,16 +39,69 @@ function printMatrix ([a,b,c,d,e,f]) {
   return `matrix(${[a,b,c,d, e*102, f*102].join(' ')})` // leaving the translate for now...
 }
 
-function printPath (...paths) {
-  return [..._renderPaths (paths)] .join (' ')
-}
-
 function printTransform (transform) {
   // TODO properly check types! currently: translate or matrix
   return transform._tag !== 'matrix'
     ? `${transform._tag}(${[...transform].join (' ')})`
     :  printMatrix (transform)
 }
+
+function printPath (...paths) {
+  return [..._renderPaths (paths)] .join (' ')
+}
+
+function* _renderPaths (paths) {
+  for (let i=paths.length-1; i>=0; i--) {
+    const { type, points, closed } = paths[i]
+    if (type === 'points'){
+      yield* ['M', points[0], points[1], 'L']
+      for (let i=2, l=points.length; i<l; i++)
+        yield points[i]
+      if (closed) yield 'Z'
+    }
+    // TODO; convert curves to sections, minimal ones
+    else if (type === 'curves') {
+      var [x0, y0, xin, yin, xout, yout] = points.slice (0, 6)
+      yield* ['M', x0, y0]
+      for (let i=0, l=points.length; i<l;) {
+        yield* ['C', xout, yout]
+        const [x, y, xin, yin, xout_, yout_] = points.slice (i, i+=6)
+        xout = xout_
+        yout = yout_
+        yield* [xin, yin, x, y]
+      }
+      if (closed)
+        yield* [xout, yout, xin, yin, x0, y0, 'Z']
+    }
+  }
+}
+
+
+// DOM Utils 
+// ---------
+
+const svgns = 'http://www.w3.org/2000/svg'
+const htmlns = 'http://www.w3.org/1999/xhtml'
+
+const Svg = (...args) => _DomNS (svgns, 'g', ...args)
+const Dom = (...args) => _DomNS (htmlns, 'div', ...args)
+
+function _DomNS (ns, _default, tagname, ...subs) {
+  var names = tagname.split ('.')
+  tagname = names.length ? names.shift () : _default
+  var el = document.createElementNS (ns, tagname)
+  if (names.length)
+    setProps (el, { 'class': names.join (' ') })
+  el.append (...subs)
+  return el
+}
+
+function setProps (el, obj) {
+  for (const [k,v] of Object.entries (obj))
+    el.setAttribute (k, v)
+  return el
+}
+
 
 // Svg Builders
 // ------------
@@ -150,7 +179,7 @@ function renderShape (shape, icon, id) {
   }
 
   else if (effect._tag === 'contour') { // use a mask..
-    let style
+    // let style
     if (effect.width < 0) {
       const _effect= setProto ({ width:-effect.width }, effect)
       style = printStrokeStyle (_effect) + `stroke:black;fill:white;`
@@ -203,31 +232,17 @@ function renderGradient ({ type, stops, matrix }, id) {
   return grel
 }
 
-function* _renderPaths (paths) {
-  for (let i=paths.length-1; i>=0; i--) {
-    const { type, points, closed } = paths[i]
-    if (type === 'points'){
-      yield* ['M', points[0], points[1], 'L']
-      for (let i=2, l=points.length; i<l; i++)
-        yield points[i]
-      if (closed) yield 'Z'
-    }
-    // TODO; convert curves to sections, minimal ones
-    else if (type === 'curves') {
-      var [x0, y0, xin, yin, xout, yout] = points.slice (0, 6)
-      yield* ['M', x0, y0]
-      for (let i=0, l=points.length; i<l;) {
-        yield* ['C', xout, yout]
-        const [x, y, xin, yin, xout_, yout_] = points.slice (i, i+=6)
-        xout = xout_
-        yout = yout_
-        yield* [xin, yin, x, y]
-      }
-      if (closed)
-        yield* [xout, yout, xin, yin, x0, y0, 'Z']
-    }
-  }
-}
 
-global.HaikonSvg = { colorCss, styleCss, gradientCss, renderShape, renderIcon, _renderPaths, printPath, printTransform }
-})(globalThis)
+// Exports
+// -------
+
+module.exports = {
+  colorCss,
+  styleCss,
+  gradientCss,
+  printTransform,
+  printPath,
+  _renderPaths,
+  renderIcon,
+  renderShape,
+}
