@@ -3,8 +3,7 @@ const fs = require ('fs')
 const util = require('util')
 const log = console.log.bind (console)
 
-require ('../scripts/hvif.js')
-parseIcon = Haikon.parseIcon
+const { hvif: { parseIcon }, svg: { renderIcon } } = require ('../')
 
 const dir = '../examples/haiku-icons/'
 var sample = 'App_Tracker'
@@ -17,7 +16,8 @@ var sample = 'Website_Comment'
 var sample = 'App_Icon-O-Matic'
 
 var data = fs.readFileSync (dir + sample)
-var result = parseIcon (data, sample)
+var icon = parseIcon (data, sample)
+log (util.inspect (icon, { depth:100 }))
 
-log (util.inspect (result, { depth:100 }))
-
+var svg = renderIcon (icon)
+log (util.inspect (svg, { depth:100 }))

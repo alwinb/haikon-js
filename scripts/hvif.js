@@ -364,10 +364,12 @@ function parseFloat24 ([b1, b2, b3]) {
 // Exports
 // -------
 
-module.exports = {
-  parseIcon, parse:parseIcon,
+const constants = {
   colorTags, colourTags:colorTags,
+  styleTags, 
   gradientTypes,
   lineCaps,
   lineJoins,
 }
+
+module.exports = { constants, parseIcon, parse:parseIcon }

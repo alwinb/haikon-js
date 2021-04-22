@@ -1,12 +1,13 @@
-const { setPrototypeOf:setProto } = Object
+const { setPrototypeOf:setProto, entries } = Object
 const log = console.log.bind (console)
+const { colorTags, gradientTypes } = require ('./hvif').constants
 
 
 // CSS builders
 // ------------
 
 function colorCss ([tag, ...bytes]) {
-  if (tag === Haikon.colorTags.KA || tag === Haikon.colorTags.K)
+  if (tag === colorTags.KA || tag === colorTags.K)
     bytes.unshift (bytes[0], bytes[0])
   return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join (''))
 }
@@ -17,11 +18,11 @@ function styleCss (style) {
 
 function gradientCss ({ type, stops }) {
   const sts = stops.map (({ color, offset }) => colorCss (color) + ' ' + offset/2.55+'%')
-  if (type !== Haikon.gradientTypes.linear && type !== Haikon.gradientTypes.radial) {
+  if (type !== gradientTypes.linear && type !== gradientTypes.radial) {
     const names = ['linear', 'radial', 'diamond', 'conic', 'xy', 'sqrtxy']
     console.warn ('Rendering a', names[type], 'gradient as a radial gradient instead.')
   }
-  return type === Haikon.gradientTypes.linear ?
+  return type === gradientTypes.linear ?
     `linear-gradient(to right, ${sts.join (', ')})` :
     `radial-gradient(circle at center, ${sts.join (', ')})`
 }
@@ -77,38 +78,37 @@ function* _renderPaths (paths) {
 }
 
 
-// DOM Utils 
-// ---------
-
-const svgns = 'http://www.w3.org/2000/svg'
-const htmlns = 'http://www.w3.org/1999/xhtml'
-
-const Svg = (...args) => _DomNS (svgns, 'g', ...args)
-const Dom = (...args) => _DomNS (htmlns, 'div', ...args)
-
-function _DomNS (ns, _default, tagname, ...subs) {
-  var names = tagname.split ('.')
-  tagname = names.length ? names.shift () : _default
-  var el = document.createElementNS (ns, tagname)
-  if (names.length)
-    setProps (el, { 'class': names.join (' ') })
-  el.append (...subs)
-  return el
-}
-
-function setProps (el, obj) {
-  for (const [k,v] of Object.entries (obj))
-    el.setAttribute (k, v)
-  return el
-}
-
-
 // Svg Builders
 // ------------
 // 6528 units = 64px
 
 function idGen () {
   return ((Math.random () * 2e16)>>>0) .toString (36)
+}
+
+function setProps (el, obj) {
+  for (const [k,v] of entries (obj))
+    el.setAttribute (k, v)
+  return el
+}
+
+function _renderers (createElementNS) {
+
+const Dom = DomNS ('http://www.w3.org/1999/xhtml')
+const Svg = DomNS ('http://www.w3.org/2000/svg')
+
+return { renderIcon, renderShape, renderGradient }
+
+// Where
+
+function DomNS (ns) {
+  return (taginfo, ...children) => {
+    const parts = taginfo.split ('.')
+    const el = createElementNS (ns, parts.shift () || 'g')
+    if (parts.length) el.setAttribute ('class', parts.join (' '))
+    el.append (...children)
+    return el
+  }
 }
 
 function renderIcon (icon, id = idGen ()) {
@@ -203,16 +203,16 @@ function renderShape (shape, icon, id) {
 }
 
 function renderGradient ({ type, stops, matrix }, id) {
-  const tagName = type === Haikon.gradientTypes.linear ? 
+  const tagName = type === gradientTypes.linear ? 
     'linearGradient' : 'radialGradient'
 
   const grel = Svg (tagName)
     setProps (grel, { id, gradientUnits:'userSpaceOnUse' })
-  
+
   if (matrix)
     setProps (grel, { gradientTransform:printMatrix (matrix) })
 
-  if (type !== Haikon.gradientTypes.linear) {
+  if (type !== gradientTypes.linear) {
     setProps (grel, { cx:0, cy:0, r:64*102 })
   }
 
@@ -232,6 +232,7 @@ function renderGradient ({ type, stops, matrix }, id) {
   return grel
 }
 
+}
 
 // Exports
 // -------
@@ -243,6 +244,5 @@ module.exports = {
   printTransform,
   printPath,
   _renderPaths,
-  renderIcon,
-  renderShape,
+  _renderers,
 }
