@@ -1,6 +1,12 @@
 Haikon
 ======
 
+[![NPM version][npm-image]][npm-url]
+
+[npm-image]: https://img.shields.io/npm/v/haikon-js.svg
+[npm-url]: https://npmjs.org/package/haikon-js
+
+
 This is my library for parsing HVIF vector icon files.  
 [Here][1] is an example/ test page. 
 
