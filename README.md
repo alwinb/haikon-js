@@ -83,13 +83,15 @@ Some glitches remain to be fixed and a few things are not (yet) supported, such 
 Acknowledgements
 ----------------
 
-The repository includes icon files from the haiku os as example files in the `examples/` directory. These were taken from [https://github.com/darealshinji/haiku-icons][4]
+The directory demo/haiku-icons/ contains icons from the haiku OS that are used in the demo page. The icons were taken from [this repository][4]. 
+I have combined them into the single haiku-icons.tar file, and make use of [tinytar][5] by [Levko Kravets][6] to extract them from the .tar file before they are parsed and rendered.
 
 [4]: https://github.com/darealshinji/haiku-icons
+[5]: https://github.com/kravets-levko/tinytar
+[6]: https://github.com/kravets-levko
 
 
 License
 -------
 
 MIT
-
