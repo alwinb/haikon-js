@@ -98,7 +98,7 @@ function Worker (iterator, cb) {
 const desktop = Dom ('div.Desktop.-track-snug')
 document.body.append (desktop)
 
-getIcons ('haiku-icons.tar', buffer => {
+getIcons ('haiku-icons/haiku-icons.tar', buffer => {
   const items = tinytar.untar (new Uint8Array (buffer))
   let count = 0
 

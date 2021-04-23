@@ -37,6 +37,7 @@ const svg = require ('./src/svg')
 assign (svg, svg._renderers (createElementNS))
 
 module.exports = {
+  version: '1.0.0-beta',
   hvif: require ('./src/hvif'),
   svg
 }
