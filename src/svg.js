@@ -23,10 +23,8 @@ function gradientCss ({ type, stops }) {
     const names = ['linear', 'radial', 'diamond', 'conic', 'xy', 'sqrtxy']
     console.warn ('Rendering a', names[type], 'gradient as a radial css gradient instead.')
   }
-  const css = type === gradientTypes.linear ?
-      `linear-gradient(to right, ${sts.join (', ')})` :
-    type === gradientTypes.conic ?
-      `conic-gradient(${sts.join (', ')})` :
+  const css = type === gradientTypes.linear ? `linear-gradient(to right, ${sts.join (', ')})` :
+    type === gradientTypes.conic ? `conic-gradient(${sts.join (', ')})` :
     // all others rendered as radial
     `radial-gradient(circle at center, ${sts.join (', ')})`
   return css
@@ -127,122 +125,120 @@ function renderIcon (icon, id = idGen ()) {
   const viewBox = '0 0 6528 6528'
   setProps (svg, { id, viewBox, style:'width:2em; height:2em; transform:translate(0, .45em);' })
   icon.shapes.forEach ((shape, shapeIndex) =>
-    svg.append (renderShape (shape, icon, id)))
+    svg.append (renderShape (shape, shapeIndex, icon, id)))
   return span
 }
 
-function renderShape (shape, icon, id) {
-  if (id == null) throw new Error ('id is null')
+  // Well, it is not clear to me, what the intended behaviour is
+  // So, this'll take more effort
 
-  // Render the paths to a compound <path> element
-  const paths = shape.pathIndices.map (i => icon.paths[i])
-  const d = pathDataAttribute (...paths)
-  const pel = Svg ('path')
-    setProps (pel, { d })
+  function renderShape (shape, shapeIndex, icon, iconId) {
+    if (iconId == null) throw new Error ('id is null')
+    const shapeId = `${iconId}-p${shapeIndex.toString (16)}`
+    const style = icon.styles [shape.styleIndex]
 
-  const transform = transformAttribute (shape)
-  if (transform) setProps (pel, { transform })
+    // Group for the (possibly multiple) strokes / contours / fill
+    const groupEl = Svg ('g')
+    const transform = transformAttribute (shape)
+    // if (transform) setProps (groupEl, { transform })
+      groupEl[refKey] = shape
 
-  if (shape.effects.length > 1)
-    console.warn ('#'+id, '('+icon.filename+')', 'TODO: support multiple effects;', shape.effects.map (_ => _.constructor.name) )
-
-  // Assuming for now there's at most one effect/transformer
-  let effect = shape.effects [0]
-  for (let t of shape.effects || [])
-    if (t instanceof hvif.Stroke || t instanceof hvif.Contour)
-      effect = t
-
-  // Render the style, optionally generating a gradient element
-  const haikonStyle = icon.styles [shape.styleIndex]
-  let gradient = null
-  let color = ''
-  if (haikonStyle instanceof hvif.Gradient) {
-    const gradientId = id + '-g' + shape.styleIndex.toString (16)
-    gradient = renderGradient (haikonStyle, gradientId)
-    color = `url(#${gradientId})`
-    // log ('gradient Id', color)
-  }
-  else
-    color = colorCss (haikonStyle)
-
-  // Now actually render the shapes...
-  if (effect instanceof hvif.Stroke) {
-    const style = printStrokeStyle (effect) + `stroke:${color};` + 'fill:none;'
-    setProps (pel, { style })
+    const { value:color, gradient } = renderFill (style, shape.styleIndex, shapeId)
     if (gradient) {
-      const g = Svg ('g')
-      g.append (gradient, pel)
-      return g
+      groupEl.append (gradient)
     }
-    else return pel
-  }
 
-  else if (effect instanceof hvif.Contour) { // use a mask..
-    let style
-    if (effect.width < 0) {
-      const _effect= setProto ({ width:-effect.width }, effect)
-      style = printStrokeStyle (_effect) + `stroke:black;fill:white;`
+    const d = pathDataAttribute (...shape.pathIndices.map (_ => icon.paths[_]))
+    // I think it always sets a fill?
+    let hasFill = ! shape.effects.filter (_ => _ instanceof hvif.Stroke) .length
+    let hasContour = false
+
+    for (const effect of shape.effects) {
+
+      if (effect instanceof hvif.Stroke) {
+        const pathEl = Svg ('path')
+        const style = printStrokeStyle (effect)
+        setProps (pathEl, { d, transform, fill:'none', stroke:color, style })
+        groupEl.append (pathEl)
+      }
+
+      else if (effect instanceof hvif.Contour) { // use a mask..
+        hasContour = true //?
+        const mask = Svg ('mask')
+        const maskId = `${iconId}-m${shape.styleIndex.toString (16)}`
+        const pathEl = Svg ('path')
+        // const style = printStrokeStyle (effect) + `stroke:${color};`
+
+        let style, stroke, fill
+        if (effect.width < 0) { // Insets..
+          const _effect = setProto ({ width:-effect.width }, effect);
+          (style = printStrokeStyle (_effect), stroke = 'black', fill = 'white') // TODO find example
+        }
+        else (style = printStrokeStyle (effect), stroke='white', fill = hasFill ? 'white' : 'black')
+        setProps (pathEl, { d, style, stroke, fill })
+        setProps (mask, { transform, id:maskId, maskUnits:'userSpaceOnUse', x:0, y:0, width:6528, height:6528 })
+        mask.append (pathEl)
+
+        const bg = Svg ('rect')
+        setProps (bg, { x:0, y:0, transform, width:6528, height:6528, fill:color, mask:`url(#${maskId})`})
+        groupEl.append (bg, mask)
+      }
     }
-    else 
-      style = printStrokeStyle (effect) + `stroke:white;fill:white;`
 
-    setProps (pel, { style })
-    const mask = Svg ('mask')
-    const maskId = id + '-m' + shape.styleIndex.toString (16)
-    setProps (mask, { id:maskId, maskUnits:'userSpaceOnUse', x:0, y:0, width:6528, height:6528 })
-    mask.append (pel)
-    const g = Svg ('g')
-    const bg = Svg ('rect')
-    setProps (bg, { x:0, y:0, width:6528, height:6528, fill:color, mask:`url(#${maskId})`})
-    g.append (mask, bg)
-    if (gradient) g.append (gradient)
-    // FIXME gradients also should be reused, I mean, they may be referenced multiple times
-    return g
-  }
-
-  else if (effect instanceof hvif.Fill) {
-    const style = printStrokeStyle (effect) + `fill:${color};` + 'stroke:none;'
-    setProps (pel, { style })
-    if (gradient) {
-      const g = Svg ('g')
-      g.append (gradient, pel)
-      return g
+    if (hasFill &&! hasContour) {
+      const pathEl = Svg ('path')
+      groupEl.append (pathEl)
+      setProps (pathEl, { d, transform, fill:color, stroke:'none' })
     }
-    else return pel
-  }
-}
 
-function renderGradient ({ type, stops, matrix }, id) {
-  const tagName
-    = type === gradientTypes.linear ? 'linearGradient'
-    : type === gradientTypes.conic  ? 'linearGradient'
-    : 'radialGradient'
 
-  const grel = Svg (tagName)
-    setProps (grel, { id, gradientUnits:'userSpaceOnUse' })
-
-  if (matrix)
-    setProps (grel, { gradientTransform:printMatrix (matrix) })
-
-  if (type !== gradientTypes.linear) {
-    setProps (grel, { cx:0, cy:0, r:64*102 })
+    return groupEl
   }
 
-  else {
-		var x1 = -64.0 *102
-		var x2 = 64.0 *102
-		var y1 = -64.0 *102
-		var y2 = -64.0 *102
-    setProps (grel, { x1, x2, y1, y2 }) // TODO
+  function renderEffect () {
+    
   }
 
-  for (const { color, offset } of stops) {
-    const st = Svg ('stop')
-    setProps (st, { offset:(offset/2.55 + '%'), 'stop-color': colorCss (color) })
-    grel.append (st)
+  function renderFill (style, styleIndex, iconId) {
+    if (style instanceof hvif.Gradient) {
+      const gradientId = `${iconId}-g${styleIndex.toString (16)}`
+      const gradient = renderGradient (style, gradientId)
+       return { value:`url(#${gradientId})`, gradient }
+    }
+    else if (style instanceof hvif.Color)
+      return { value: colorCss (style) }
   }
-  return grel
-}
+
+
+  function renderGradient ({ type, stops, matrix }, id) {
+    const tagName = type === gradientTypes.linear || type === gradientTypes.conic ? 
+      'linearGradient' : 'radialGradient'
+
+    const grel = Svg (tagName)
+      setProps (grel, { id, gradientUnits:'userSpaceOnUse' })
+
+    if (matrix)
+      setProps (grel, { gradientTransform:printMatrix (matrix) })
+
+    if (type !== gradientTypes.linear && type !== gradientTypes.conic) {
+      setProps (grel, { cx:0, cy:0, r:64*102 })
+    }
+
+    else {
+  		var x1 = -64.0 *102
+  		var x2 =  64.0 *102
+  		var y1 = -64.0 *102
+  		var y2 = -64.0 *102
+      setProps (grel, { x1, x2, y1, y2 }) // TODO
+    }
+
+    for (const { color, offset } of stops) {
+      const st = Svg ('stop')
+      setProps (st, { offset:(offset/2.55 + '%'), 'stop-color': colorCss (color) })
+      grel.append (st)
+    }
+    return grel
+  }
 
 } // end Renderer
 
