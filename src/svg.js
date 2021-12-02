@@ -1,6 +1,7 @@
+import { constants } from './hvif.js'
 const { setPrototypeOf:setProto, entries } = Object
+const { colorTags, gradientTypes } = constants
 const log = console.log.bind (console)
-const { colorTags, gradientTypes } = require ('./hvif').constants
 
 
 // CSS builders
@@ -92,7 +93,7 @@ function setProps (el, obj) {
   return el
 }
 
-function _renderers (createElementNS) {
+function Renderer (createElementNS) {
 
 const Dom = DomNS ('http://www.w3.org/1999/xhtml')
 const Svg = DomNS ('http://www.w3.org/2000/svg')
@@ -179,7 +180,7 @@ function renderShape (shape, icon, id) {
   }
 
   else if (effect._tag === 'contour') { // use a mask..
-    // let style
+    let style
     if (effect.width < 0) {
       const _effect= setProto ({ width:-effect.width }, effect)
       style = printStrokeStyle (_effect) + `stroke:black;fill:white;`
@@ -232,17 +233,16 @@ function renderGradient ({ type, stops, matrix }, id) {
   return grel
 }
 
-}
+} // end Renderer
 
 // Exports
 // -------
 
-module.exports = {
+export {
   colorCss,
   styleCss,
   gradientCss,
   printTransform,
   printPath,
-  _renderPaths,
-  _renderers,
+  Renderer,
 }

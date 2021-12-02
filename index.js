@@ -33,11 +33,9 @@ function* renderIt ({ tagName, attributes:atts, children }) {
 // Exports
 // -------
 
-const svg = require ('./src/svg')
-assign (svg, svg._renderers (createElementNS))
-
-module.exports = {
-  version: '1.0.0-beta',
-  hvif: require ('./src/hvif'),
-  svg
-}
+const version = '1.0.0-beta'
+import * as hvif from './src/hvif.js'
+import * as svg from './src/svg.js'
+const svg_ = svg.Renderer (createElementNS)
+Object.assign (svg_, svg)
+export { version, hvif, svg_ as svg }

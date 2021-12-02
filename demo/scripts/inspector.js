@@ -1,4 +1,7 @@
+import * as HaikonSvg from '../../src/svg.js'
 const assign = Object.assign
+const { renderIcon } = HaikonSvg.Renderer (document.createElementNS.bind (document))
+
 
 // Icon Inspector
 // ==============
@@ -37,11 +40,11 @@ class Inspector {
       this.layers.insertBefore (layerElement (shape, shapeIndex, icon, this), this.layers.firstChild)
     })
 
-    const svg = HaikonSvg.renderIcon (icon).getElementsByTagName ('svg') [0]
+    const svg = renderIcon (icon).getElementsByTagName ('svg') [0]
     //const viewBox = '0 0 6528 6528'
     const viewBox = '-204 -204 6936 6936'
       setProps (svg, { viewBox, style:null })
-    this.svg.replaceWith (svg)
+    this.svg.replaceWith (this.svg = svg)
   }
 
   selectShape (shapeIndex, icon) {
@@ -188,3 +191,9 @@ function renderGrid () {
   }
   return g
 }
+
+
+// Exports
+// -------
+
+export { Inspector }

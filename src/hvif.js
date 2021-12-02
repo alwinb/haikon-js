@@ -372,4 +372,4 @@ const constants = {
   lineJoins,
 }
 
-module.exports = { constants, parseIcon, parse:parseIcon }
+export { constants, parseIcon }

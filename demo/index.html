@@ -5,7 +5,7 @@
   <title>HVIF parser in JavaScript</title>
   <link rel="stylesheet" href="style/main.css">
   <script src="./scripts/console.js"></script>
-<script src="./lib/tinytar.min.js"></script>
+  <script src="./lib/tinytar.min.js"></script>
 </head>
 <body class=-track>
 
@@ -36,11 +36,16 @@
   window.addEventListener ('error', evt => console.errorHandler (evt), { capture:true })
 </script>
 
-<!-- these are not in the head so that they can use the in-page console, just for debugging -->
-<script src="./lib/haikon.min.js"></script>
-<script src="./scripts/inspector.js"></script>
-<script>{
+<!-- this is not in the head so that it uses the in-page console, just for debugging -->
+<script type=module>
 const log = console.log.bind (console)
+
+import { parseIcon } from '../src/hvif.js'
+import { Renderer } from '../src/svg.js'
+const renderIcon = Renderer (document.createElementNS.bind (document)) .renderIcon
+
+
+import { Inspector } from "./scripts/inspector.js"
 
 function getIcons (url, callback) {
   const req = new XMLHttpRequest ()
@@ -106,8 +111,8 @@ getIcons ('haiku-icons/haiku-icons.tar', buffer => {
     for (let i=0, l=items.length; i<l; i++) if (items[i].type === 0) {
       count++
       let name = items[i].name.split ('/') .pop ()
-      const icon = Haikon.parse (items[i].data, name)
-      const svg = HaikonSvg.renderIcon (icon)
+      const icon = parseIcon (items[i].data, name)
+      const svg = renderIcon (icon)
       //
       const div = Dom ('div.filename', svg, ' ', name)
       desktop.append (div)
@@ -129,6 +134,6 @@ getIcons ('haiku-icons/haiku-icons.tar', buffer => {
 })
 
 
-}</script>
+</script>
 </body>
 </html>

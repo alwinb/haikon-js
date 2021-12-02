@@ -7,4 +7,4 @@ excludeInFolderSearch = "{examples/haiku-icons/*,node_modules,private,dist}"
 excludeInFileChooser = "{examples/haiku-icons/*,node_modules,private,dist}"
 
 [hvif.js]
-TM_RUN_TARGET = "test/test.js"
+TM_RUN_TARGET = "../test/test.js"

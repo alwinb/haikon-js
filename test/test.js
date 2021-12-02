@@ -1,9 +1,9 @@
 // Test
-const fs = require ('fs')
-const util = require('util')
-const log = console.log.bind (console)
 
-const { hvif: { parseIcon }, svg: { renderIcon } } = require ('../')
+import fs from 'fs'
+import util from 'util'
+import { hvif, svg } from '../index.js'
+const log = console.log.bind (console)
 
 const dir = '../examples/haiku-icons/'
 
@@ -19,15 +19,15 @@ const samples = [
 ]
 
 var data = fs.readFileSync (dir + samples[0])
-var icon = parseIcon (data, samples[0])
+var icon = hvif.parseIcon (data, samples[0])
 // log (util.inspect (icon, { depth:100 }))
 
 //*
 log ('<style>html { font-size:24px; padding:2rem }.haikon { font-size:100px }</style>')
 for (let sample of samples) {
   var data = fs.readFileSync (dir + sample)
-  var icon = parseIcon (data, sample)
-  process.stdout.write (renderIcon (icon) .toSVGString ())
+  var icon = hvif.parseIcon (data, sample)
+  process.stdout.write (svg.renderIcon (icon) .toSVGString ())
 }
 
 process.exit (205)
