@@ -19,13 +19,17 @@ function styleCss (style) {
 
 function gradientCss ({ type, stops }) {
   const sts = stops.map (({ color, offset }) => colorCss (color) + ' ' + offset/2.55+'%')
-  if (type !== gradientTypes.linear && type !== gradientTypes.radial) {
+  if (type !== gradientTypes.linear && type !== gradientTypes.radial && type !== gradientTypes.conic) {
     const names = ['linear', 'radial', 'diamond', 'conic', 'xy', 'sqrtxy']
-    console.warn ('Rendering a', names[type], 'gradient as a radial gradient instead.')
+    console.warn ('Rendering a', names[type], 'gradient as a radial css gradient instead.')
   }
-  return type === gradientTypes.linear ?
-    `linear-gradient(to right, ${sts.join (', ')})` :
+  const css = type === gradientTypes.linear ?
+      `linear-gradient(to right, ${sts.join (', ')})` :
+    type === gradientTypes.conic ?
+      `conic-gradient(${sts.join (', ')})` :
+    // all others rendered as radial
     `radial-gradient(circle at center, ${sts.join (', ')})`
+  return css
 }
 
 function printStrokeStyle (effect) {
