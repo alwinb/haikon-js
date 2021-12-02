@@ -213,8 +213,10 @@ function renderShape (shape, icon, id) {
 }
 
 function renderGradient ({ type, stops, matrix }, id) {
-  const tagName = type === gradientTypes.linear ? 
-    'linearGradient' : 'radialGradient'
+  const tagName
+    = type === gradientTypes.linear ? 'linearGradient'
+    : type === gradientTypes.conic  ? 'linearGradient'
+    : 'radialGradient'
 
   const grel = Svg (tagName)
     setProps (grel, { id, gradientUnits:'userSpaceOnUse' })
