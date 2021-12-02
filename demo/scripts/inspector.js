@@ -1,7 +1,7 @@
+import * as Haikon from '../../src/hvif.js'
 import * as HaikonSvg from '../../src/svg.js'
 const assign = Object.assign
 const { renderIcon } = HaikonSvg.Renderer (document.createElementNS.bind (document))
-
 
 // Icon Inspector
 // ==============
@@ -15,6 +15,7 @@ class Inspector {
     const info   = Dom ('pre.info')
     const styles = Dom ('div.styles')
     const svg    = Svg ('svg.render')
+      info.append (' ')
 
     const viewBox = '-204 -204 6936 6936'
     const outlines = Svg ('svg.outlines')
@@ -29,6 +30,7 @@ class Inspector {
   }
 
   show (icon, filename = 'Untitled') {
+    this._doc = icon
     this.title.innerHTML = ''
     this.title.append (filename.split ('_') .join (': '))
 
@@ -40,16 +42,17 @@ class Inspector {
       this.layers.insertBefore (layerElement (shape, shapeIndex, icon, this), this.layers.firstChild)
     })
 
-    const svg = renderIcon (icon).getElementsByTagName ('svg') [0]
+    const svg = renderIcon (icon) .getElementsByTagName ('svg') [0]
     //const viewBox = '0 0 6528 6528'
     const viewBox = '-204 -204 6936 6936'
       setProps (svg, { viewBox, style:null })
+    this.svg.removeEventListener ('mousedown', this)
     this.svg.replaceWith (this.svg = svg)
+    svg.addEventListener ('mousedown', this)
   }
 
-  selectShape (shapeIndex, icon) {
+  selectShape (shape, shapeIndex, icon) {
     // Should be done via component state and bubble event
-    const shape = icon.shapes[shapeIndex]
     this.outlines.innerHTML = ''
     this.outlines.append (renderOutlines (shape, icon))
     //this.outlines.append (renderGrid())
@@ -63,12 +66,28 @@ class Inspector {
     elem.classList.add ('-selected')
   }
 
+  handleEvent (evt) {
+    if (HaikonSvg.refKey in evt.target) {
+      const obj = evt.target [HaikonSvg.refKey]
+      if (obj.index) {
+        const els = this.layers.childNodes
+        const layer = els.length - 1 - obj.index
+        const el = els [layer]
+        this.select (el)
+        this.layers.scrollTop = (layer -2) * 45
+        this.selectShape (obj, obj.index, this._doc)
+      }
+      this.info.innerHTML = JSON.stringify (obj, null, 2)
+    }
+  }
+
 }
 
 // Inspector/ Views
 // ----------------
 
 // A list-item view for each shape
+
 function layerElement (shape, shapeIndex, icon, view) {
   const el = Dom ('div.layer')
   const swatch = Dom ('div.swatch')
@@ -77,15 +96,24 @@ function layerElement (shape, shapeIndex, icon, view) {
 
   const labels = []
   if (shape.pathIndices.length > 1) labels.push ('compound')
-  const ts = (shape.transformers || [{_tag:'fill'}])
-  ts.forEach (_ => labels.push (_._tag))
-  if (shape.transform)
-    labels.push ('transform')
+  const ts = shape.effects.length ? shape.effects : [{_tag:'fill'}]
+  ts.forEach (_ => {
+    const name = _ instanceof Haikon.Stroke ? 'stroke'
+      : _ instanceof Haikon.Contour ? 'contour'
+      : _ instanceof Haikon.Fill ? 'fill'
+      : _._tag
+    labels.push (name)
+  })
+
+  if (shape.matrix || shape.translate)
+    labels.unshift ('transform')
+
   el.append (labels.join (', '))
-  el.addEventListener ('click', evt => {
+
+  el.addEventListener ('mousedown', evt => {
     log ('Select shape', shapeIndex, el.className)
     view.select (el)
-    view.selectShape (shapeIndex, icon)
+    view.selectShape (shape, shapeIndex, icon)
   })
 
   return el
@@ -95,7 +123,7 @@ function paletteElement (style, styleIndex, view) {
   const { tag } = style
   let el = Dom ('div.style')
 
-  if (tag === 2 /* gradient */) {
+  if (style instanceof Haikon.Gradient) {
     const { type, matrix, stops } = style
       el.classList.add ('gradient')
       el.style.background = HaikonSvg.gradientCss (style)
@@ -107,7 +135,7 @@ function paletteElement (style, styleIndex, view) {
     el.style.background = HaikonSvg.colorCss (style)
   }
 
-  el.addEventListener ('click', evt => {
+  el.addEventListener ('mousedown', evt => {
     view.info.innerHTML = JSON.stringify (style, null, 2)
     log ('Select style', style, styleIndex)
     view.select (el)
@@ -131,22 +159,28 @@ function paletteElement (style, styleIndex, view) {
 // ---------------------------------
 
 function renderOutlines (shape, icon) {
-  const paths = shape.pathIndices.map (i => icon.paths[i])
+  const paths = shape.pathIndices.map (_ => icon.paths [_])
   const g = Svg ('g')
   const el = Svg ('path')
     g.append (el)
-    setProps (el, { d:HaikonSvg.printPath (...paths )})
-  if (shape.transform)
-    setProps (g, { transform:HaikonSvg.printTransform (shape.transform) })
+    setProps (el, { d:HaikonSvg.pathDataAttribute (...paths )})
 
-  for (const { type, points } of paths) {
-    if (type === 'points') {
-      for (let i=0, l=points.length; i<l; i+=2)
-        g.append (point (...points.slice(i, i+2)))
+  const transform = HaikonSvg.transformAttribute (shape)
+  if (transform) setProps (g, { transform })
+
+  for (const path of paths) {
+    const { points } = path
+    if (path instanceof Haikon.Polygon) {
+      for (let i=0, l=points.length; i<l; i+=2) { let p
+        g.append (p = point (...points.slice(i, i+2)))
+        if (i === 0) p.setAttribute ('class', 'first')
+      }
     }
-    else if (type === 'curves') {
-      for (let i=0, l=points.length; i<l; i+=6)
-        g.append (controls (...points.slice (i, i+6)))
+    else if (path instanceof Haikon.Path) {
+      for (let i=0, l=points.length; i<l; i+=6) { let cs
+        g.append (cs = controls (...points.slice (i, i+6)))
+        if (cs && i===0) cs.firstChild.setAttribute ('class', 'first')
+      }
     }
   }
   
@@ -159,20 +193,24 @@ function point (x, y) {
   return setProps (el, { x:x-70, y:y-70, width:140, height:140 })
 }
 
+function circle (x, y) {
+  const el = Svg ('circle')
+  return setProps (el, { cx:x, cy:y, r:70 })
+}
+
 function controls (x, y, xin, yin, xout, yout) {
   const g = Svg ('g')
   const p = Svg ('path')
   setProps (p, { d:['M', xin, yin, x, y, xout, yout].join(' ') })
-  g.append (p, point(x, y), diam(xin, yin), diam(xout, yout))
+  g.append (point(x,y))
+  if (xin !== x || yin !== y)
+    g.append (circle(xin, yin))
+  if (xout !== x || yout !== y)
+    g.append (circle(xout, yout))
+  g.append (p)
   return g
 }
 
-function diam (x, y) {
-  const g = Svg ('g')
-  var el = Svg ('path')
-  g.append (setProps (el, { stroke:'cyan', d:`M${x-70} ${y} l70 70 l70 -70 l-70 -70 z`}))
-  return g
-}
 
 function renderGrid () {
   const g = Svg ('g')

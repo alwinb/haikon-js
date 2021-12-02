@@ -1,4 +1,4 @@
-const { setPrototypeOf:setProto } = Object
+const { setPrototypeOf:setProto, assign } = Object
 const log = console.log.bind (console)
 
 // HVIF file format
@@ -9,6 +9,41 @@ const log = console.log.bind (console)
 // Each section starts with a single byte indicating the number of objects in 
 // that section. These objects are of variable size, thus fast-indexing to 
 // sections, or objects is not possible. 
+
+function Color (type, values) {
+  this.tag = type
+  this.values = [...values]
+}
+
+function Gradient (type, matrix, stops) {
+  this.type = type
+  this.matrix = matrix
+  this.stops = stops
+}
+
+function Polygon (points, closed) {
+  this.points = points
+  this.closed = closed
+}
+
+function Path (points, closed) {
+  this.points = points
+  this.closed = closed
+}
+
+function Shape (styleIndex, pathIndices) {
+  this.styleIndex = styleIndex
+  this.pathIndices = pathIndices
+  this.effects = []
+}
+
+
+// 'Effects'
+
+function Contour () {}
+function Stroke () {}
+function Fill () {}
+
 
 // ## Colors and Styles
 
@@ -144,15 +179,15 @@ function parseIcon (data, filename = null) {
     const closed = !! (flags & pathFlags.closed)
     if (flags & pathFlags.points) {
       const points = readCoords (pointCount * 2)
-      return { type: 'points', points, closed }
+      return new Polygon (points, closed)
     }
     else if (flags & pathFlags.commands) {
       const points = readControls (pointCount)
-      return { type: 'curves', points, closed }
+      return new Path (points, closed)
     }
     else {
       const points = readCoords (pointCount * 6)
-      return { type: 'curves', points, closed }
+      return new Path (points, closed)
     }
   }
 
@@ -163,27 +198,28 @@ function parseIcon (data, filename = null) {
     const pathIndices = [...data.slice (pos, pos += pathCount)]
     const flags = data [pos++]
 
-    const shape = { tag, styleIndex, pathIndices }
+    const shape = new Shape (styleIndex, pathIndices)
     if (flags & shapeFlags.matrix) {
-      shape.transform = readMatrix ()
-      shape.transform._tag = 'matrix'
+      shape.matrix = readMatrix ()
     }
 
     else if (flags & shapeFlags.translate) {
-      shape.transform = readCoords (2)
-      shape.transform._tag = 'translate'
+      shape.translate = readCoords (2)
     }
     
     if (flags & shapeFlags.lodScale) {
       let [min, max] = data.slice (pos, pos+=2)
       min = min / 63.75
       max = max / 63.75 // TODO adjust for my coordinate system
+      shape.detailLevel = { min, max }
     }
 
     if (flags & shapeFlags.transformers) {
       const count = data [pos++]
-      shape.transformers = readTransformers (count)
+      shape.effects = readEffects (count)
     }
+    if (! shape.effects.length)
+      shape.effects[0] = new Fill ()
     // TODO hinting transformer?
     // shape._startPos = pos
     return shape
@@ -191,8 +227,8 @@ function parseIcon (data, filename = null) {
 
   // Called from readShape
 
-  function readTransformers (count) {
-    const transformers = []
+  function readEffects (count) {
+    const effects = []
     for (; count >0; count--) {
       const tag = data [pos++]
       // Affine: 6 bytes (!!)
@@ -201,34 +237,41 @@ function parseIcon (data, filename = null) {
       // Stroke: width, options, miterLimit
       switch (tag) {
 
+        /*
         case transformerTags.AFFINE:
           // NB matrix of six i32 values...?
           //const matrix = data.slice (pos, pos += (32/4) * 6)
           const matrix = readMatrix ()
           throw new Error ('TODO read affine transformer')
-        break
+          // NB this is not used in any of the official icons
+        break*/
         
         case transformerTags.CONTOUR: {
           const [width, lineJoin, miterLimit] = data.slice (pos, pos += 3)
           // TODO check parsing of lineJoin et al
-          transformers.push ({ tag, _tag:'contour', width:(width-128)*102, lineJoin, miterLimit })
+          const effect = new Contour ()
+          effect.width = (width-128)*102
+          assign (effect, { lineJoin, miterLimit })
+          effects.push (effect)
         }
         break
         
         case transformerTags.STROKE: {
+          const effect = new Stroke ()
           const [width, lineOptions, miterLimit] = data.slice (pos, pos += 3)
           // LineOptions stores lineJoin, lineCap in 4 bits each
           const lineJoin = lineOptions & 0xf
     			const lineCap = lineOptions >> 4
-          transformers.push ({ tag, _tag:'stroke', width:(width-128)*102, lineJoin, lineCap, miterLimit })
+          assign (effect, { width:(width-128)*102, lineJoin, lineCap, miterLimit })
+          effects.push (effect)
         }
 
         break; default:
           log ('unknown transformer tag: '+tag+' @ '+pos)
-          return transformers // throw new Error ('unknown transformer tag: '+tag)
+          return effects // throw new Error ('unknown transformer tag: '+tag)
       }
     }
-    return transformers
+    return effects
   }
 
   // Called from readStyle
@@ -236,7 +279,7 @@ function parseIcon (data, filename = null) {
   function readColorOfType (tag) {
     if (tag !==2 && tag <= 5) {
       const sizes = [0, 4, 0, 3, 2, 1] // number of bytes per colorFormat
-      return [tag, ...data.slice (pos, pos += sizes[tag])]
+      return new Color (tag, data.slice (pos, pos += sizes[tag]))
     }
     else throw new Error (`unknown color format: ${tag}`)
   }
@@ -251,7 +294,7 @@ function parseIcon (data, filename = null) {
 
     const matrix = flags & gradientFlags.transform ? readMatrix () : null
     const stops = readStops (stopCount, colorFormat)
-    return { tag:styleTags.GRADIENT, type, matrix, stops }
+    return new Gradient (type, matrix, stops)
   }
   
   function readStops (stopCount, colorFormat) {
@@ -372,4 +415,8 @@ const constants = {
   lineJoins,
 }
 
-export { constants, parseIcon }
+export { 
+  parseIcon,
+  Color, Gradient, Polygon, Path, Shape,
+  Contour, Stroke, Fill,
+  constants as _constants }

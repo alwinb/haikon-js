@@ -253,15 +253,24 @@ h1 {
 .wrap .outlines {
   z-index:1000;
 }
-.outlines {
+.outlines, rect[mask] {
   pointer-events:none;
+}
+.outlines rect.first {
+  stroke:cyan;
+  fill:cyan;
 }
 .outlines path, .outlines line, .outlines circle, .outlines rect {
   vector-effect:non-scaling-stroke;
   vector-effect:non-scaling-size;
-  stroke-width:1;
+  stroke-width:1.5;
   stroke:red;
 }
+
+.outlines circle, .outlines rect {
+  fill:red;
+}
+
 .wrap svg {
   position:absolute;
   width:15rem;

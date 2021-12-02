@@ -1,20 +1,20 @@
-import { constants } from './hvif.js'
+import * as hvif from './hvif.js'
 const { setPrototypeOf:setProto, entries } = Object
-const { colorTags, gradientTypes } = constants
+const { colorTags, gradientTypes } = hvif._constants
 const log = console.log.bind (console)
 
 
-// CSS builders
-// ------------
+// CSS values
+// ----------
 
-function colorCss ([tag, ...bytes]) {
+function colorCss ({ tag, values: bytes = [] }) {
   if (tag === colorTags.KA || tag === colorTags.K)
-    bytes.unshift (bytes[0], bytes[0])
+    bytes = [bytes[0], bytes[0]] .concat (bytes)
   return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join (''))
 }
 
 function styleCss (style) {
-  return style.tag === 2 ? gradientCss (style) : colorCss (style)
+  return style instanceof hvif.Gradient ? gradientCss (style) : colorCss (style)
 }
 
 function gradientCss ({ type, stops }) {
@@ -29,58 +29,63 @@ function gradientCss ({ type, stops }) {
 }
 
 function printStrokeStyle (effect) {
-  // TODO clean this up
   return `stroke-width:${effect.width};` + 
     `stroke-linejoin:${["miter", "miter", "round", "bevel", "miter"][effect.lineJoin]};` + 
     `stroke-linecap:${["butt", "square", "round"][effect.lineCap]};`
 }
 
-// ### Attribute string builders
+
+// Attribute strings
+// -----------------
+
+// leaving the translate for now...
+// So, TODO have the parser adjust for my coordinate units
 
 function printMatrix ([a,b,c,d,e,f]) {
-  return `matrix(${[a,b,c,d, e*102, f*102].join(' ')})` // leaving the translate for now...
+  return `matrix(${[a,b,c,d, e*102, f*102].join(' ')})`
 }
 
-function printTransform (transform) {
-  // TODO properly check types! currently: translate or matrix
-  return transform._tag !== 'matrix'
-    ? `${transform._tag}(${[...transform].join (' ')})`
-    :  printMatrix (transform)
+function transformAttribute (shape) {
+  if (shape.matrix)
+    return printMatrix (shape.matrix)
+  if (shape.translate) {
+    const [dx,dy] = shape.translate
+    return `translate(${dx} ${dy})`
+  }
 }
 
-function printPath (...paths) {
+function pathDataAttribute (...paths) {
   return [..._renderPaths (paths)] .join (' ')
 }
 
 function* _renderPaths (paths) {
   for (let i=paths.length-1; i>=0; i--) {
-    const { type, points, closed } = paths[i]
-    if (type === 'points'){
+    const { points, closed } = paths[i]
+    if (paths[i] instanceof hvif.Polygon) {
       yield* ['M', points[0], points[1], 'L']
-      for (let i=2, l=points.length; i<l; i++)
-        yield points[i]
+      for (let i=2, l=points.length; i<l; i++) yield points[i]
       if (closed) yield 'Z'
     }
-    // TODO; convert curves to sections, minimal ones
-    else if (type === 'curves') {
-      var [x0, y0, xin, yin, xout, yout] = points.slice (0, 6)
+    else if (paths[i] instanceof hvif.Path) {
+      var [x0, y0, xin0, yin0] = points.slice (0, 4)
       yield* ['M', x0, y0]
-      for (let i=0, l=points.length; i<l;) {
-        yield* ['C', xout, yout]
-        const [x, y, xin, yin, xout_, yout_] = points.slice (i, i+=6)
-        xout = xout_
-        yout = yout_
-        yield* [xin, yin, x, y]
+      for (let i=4, l=points.length-6; i<l;) {
+        const [xout, yout, x, y, xin, yin] = points.slice (i, i+=6)
+        yield* ['C', xout, yout, xin, yin, x, y]
       }
-      if (closed)
-        yield* [xout, yout, xin, yin, x0, y0, 'Z']
+      if (closed) {
+        const [xout, yout] = points.slice (points.length-2)
+        yield* [xout, yout, xin0, yin0, x0, y0]
+        yield 'Z'
+      }
     }
   }
 }
 
 
-// Svg Builders
+// Svg Renderer
 // ------------
+
 // 6528 units = 64px
 
 function idGen () {
@@ -127,27 +132,27 @@ function renderShape (shape, icon, id) {
 
   // Render the paths to a compound <path> element
   const paths = shape.pathIndices.map (i => icon.paths[i])
-  const d = printPath (...paths)
+  const d = pathDataAttribute (...paths)
   const pel = Svg ('path')
     setProps (pel, { d })
-  if (shape.transform)
-    setProps (pel, { transform: printTransform (shape.transform) })
 
-  const effects = shape.transformers||[]
-  if (effects.length > 1)
-    console.warn ('#'+id, '('+icon.filename+')', 'TODO: support multiple effects;', effects.map (_ => _._tag ? _._tag : 'fill') )
+  const transform = transformAttribute (shape)
+  if (transform) setProps (pel, { transform })
+
+  if (shape.effects.length > 1)
+    console.warn ('#'+id, '('+icon.filename+')', 'TODO: support multiple effects;', shape.effects.map (_ => _.constructor.name) )
 
   // Assuming for now there's at most one effect/transformer
-  let effect = { _tag:'fill' }
-  for (let t of shape.transformers || [])
-    if (t._tag === 'stroke' || t._tag === 'contour') 
+  let effect = shape.effects [0]
+  for (let t of shape.effects || [])
+    if (t instanceof hvif.Stroke || t instanceof hvif.Contour)
       effect = t
 
   // Render the style, optionally generating a gradient element
   const haikonStyle = icon.styles [shape.styleIndex]
   let gradient = null
   let color = ''
-  if (haikonStyle.tag == 2) {
+  if (haikonStyle instanceof hvif.Gradient) {
     const gradientId = id + '-g' + shape.styleIndex.toString (16)
     gradient = renderGradient (haikonStyle, gradientId)
     color = `url(#${gradientId})`
@@ -157,7 +162,7 @@ function renderShape (shape, icon, id) {
     color = colorCss (haikonStyle)
 
   // Now actually render the shapes...
-  if (effect._tag === 'stroke') {
+  if (effect instanceof hvif.Stroke) {
     const style = printStrokeStyle (effect) + `stroke:${color};` + 'fill:none;'
     setProps (pel, { style })
     if (gradient) {
@@ -168,18 +173,7 @@ function renderShape (shape, icon, id) {
     else return pel
   }
 
-  else if (effect._tag === 'fill') {
-    const style = printStrokeStyle (effect) + `fill:${color};` + 'stroke:none;'
-    setProps (pel, { style })
-    if (gradient) {
-      const g = Svg ('g')
-      g.append (gradient, pel)
-      return g
-    }
-    else return pel
-  }
-
-  else if (effect._tag === 'contour') { // use a mask..
+  else if (effect instanceof hvif.Contour) { // use a mask..
     let style
     if (effect.width < 0) {
       const _effect= setProto ({ width:-effect.width }, effect)
@@ -200,6 +194,17 @@ function renderShape (shape, icon, id) {
     if (gradient) g.append (gradient)
     // FIXME gradients also should be reused, I mean, they may be referenced multiple times
     return g
+  }
+
+  else if (effect instanceof hvif.Fill) {
+    const style = printStrokeStyle (effect) + `fill:${color};` + 'stroke:none;'
+    setProps (pel, { style })
+    if (gradient) {
+      const g = Svg ('g')
+      g.append (gradient, pel)
+      return g
+    }
+    else return pel
   }
 }
 
@@ -242,7 +247,7 @@ export {
   colorCss,
   styleCss,
   gradientCss,
-  printTransform,
-  printPath,
+  transformAttribute,
+  pathDataAttribute,
   Renderer,
 }
