@@ -100,7 +100,7 @@ function layerElement (shape, shapeIndex, icon, view) {
   ts.forEach (_ => {
     const name = _ instanceof Haikon.Stroke ? 'stroke'
       : _ instanceof Haikon.Contour ? 'contour'
-      : _ instanceof Haikon.Fill ? 'fill'
+      // : _ instanceof Haikon.Fill ? 'fill'
       : _._tag
     labels.push (name)
   })

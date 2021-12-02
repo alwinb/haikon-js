@@ -1,14 +1,17 @@
 import * as hvif from './hvif.js'
 const { setPrototypeOf:setProto, entries } = Object
-const { colorTags, gradientTypes } = hvif._constants
+const { colorFormats, gradientTypes } = hvif
 const log = console.log.bind (console)
 
+
+// SVG Renderer
+// ============
 
 // CSS values
 // ----------
 
-function colorCss ({ tag, values: bytes = [] }) {
-  if (tag === colorTags.KA || tag === colorTags.K)
+function colorCss ({ type, values: bytes = [] }) {
+  if (type === colorFormats.KA || type === colorFormats.K)
     bytes = [bytes[0], bytes[0]] .concat (bytes)
   return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join (''))
 }
@@ -30,7 +33,7 @@ function gradientCss ({ type, stops }) {
   return css
 }
 
-function printStrokeStyle (effect) {
+function strokeStyleCss (effect) {
   return `stroke-width:${effect.width};` + 
     `stroke-linejoin:${["miter", "miter", "round", "bevel", "miter"][effect.lineJoin]};` + 
     `stroke-linecap:${["butt", "square", "round"][effect.lineCap]};`
@@ -90,6 +93,9 @@ function* _renderPaths (paths) {
 
 // 6528 units = 64px
 
+const refKey =
+  Symbol ('Haikon.ref')
+
 function idGen () {
   return ((Math.random () * 2e16)>>>0) .toString (36)
 }
@@ -100,34 +106,38 @@ function setProps (el, obj) {
   return el
 }
 
+
+// ### Renderer
+// Parameterised by a createElementNS function
+
 function Renderer (createElementNS) {
 
-const Dom = DomNS ('http://www.w3.org/1999/xhtml')
-const Svg = DomNS ('http://www.w3.org/2000/svg')
+  const Dom = DomNS ('http://www.w3.org/1999/xhtml')
+  const Svg = DomNS ('http://www.w3.org/2000/svg')
 
-return { renderIcon, renderShape, renderGradient }
+  return { renderIcon, renderShape, renderGradient }
 
-// Where
+  // Where
 
-function DomNS (ns) {
-  return (taginfo, ...children) => {
-    const parts = taginfo.split ('.')
-    const el = createElementNS (ns, parts.shift () || 'g')
-    if (parts.length) el.setAttribute ('class', parts.join (' '))
-    el.append (...children)
-    return el
+  function DomNS (ns) {
+    return (taginfo, ...children) => {
+      const parts = taginfo.split ('.')
+      const el = createElementNS (ns, parts.shift () || 'g')
+      if (parts.length) el.setAttribute ('class', parts.join (' '))
+      el.append (...children)
+      return el
+    }
   }
-}
 
-function renderIcon (icon, id = idGen ()) {
-  const svg = Svg ('svg')
-  const span = Dom ('span.haikon', svg)
-  const viewBox = '0 0 6528 6528'
-  setProps (svg, { id, viewBox, style:'width:2em; height:2em; transform:translate(0, .45em);' })
-  icon.shapes.forEach ((shape, shapeIndex) =>
-    svg.append (renderShape (shape, shapeIndex, icon, id)))
-  return span
-}
+  function renderIcon (icon, id = idGen ()) {
+    const svg = Svg ('svg')
+    const span = Dom ('span.haikon', svg)
+    const viewBox = '0 0 6528 6528'
+    setProps (svg, { id, viewBox, style:'width:2em; height:2em; transform:translate(0, .45em);' })
+    icon.shapes.forEach ((shape, shapeIndex) =>
+      svg.append (renderShape (shape, shapeIndex, icon, id)))
+    return span
+  }
 
   // Well, it is not clear to me, what the intended behaviour is
   // So, this'll take more effort
@@ -144,11 +154,9 @@ function renderIcon (icon, id = idGen ()) {
       groupEl[refKey] = shape
 
     const { value:color, gradient } = renderFill (style, shape.styleIndex, shapeId)
-    if (gradient) {
-      groupEl.append (gradient)
-    }
-
+    if (gradient) groupEl.append (gradient)
     const d = pathDataAttribute (...shape.pathIndices.map (_ => icon.paths[_]))
+
     // I think it always sets a fill?
     let hasFill = ! shape.effects.filter (_ => _ instanceof hvif.Stroke) .length
     let hasContour = false
@@ -157,7 +165,7 @@ function renderIcon (icon, id = idGen ()) {
 
       if (effect instanceof hvif.Stroke) {
         const pathEl = Svg ('path')
-        const style = printStrokeStyle (effect)
+        const style = strokeStyleCss (effect)
         setProps (pathEl, { d, transform, fill:'none', stroke:color, style })
         groupEl.append (pathEl)
       }
@@ -167,14 +175,14 @@ function renderIcon (icon, id = idGen ()) {
         const mask = Svg ('mask')
         const maskId = `${iconId}-m${shape.styleIndex.toString (16)}`
         const pathEl = Svg ('path')
-        // const style = printStrokeStyle (effect) + `stroke:${color};`
+        // const style = strokeStyleCss (effect) + `stroke:${color};`
 
         let style, stroke, fill
         if (effect.width < 0) { // Insets..
           const _effect = setProto ({ width:-effect.width }, effect);
-          (style = printStrokeStyle (_effect), stroke = 'black', fill = 'white') // TODO find example
+          (style = strokeStyleCss (_effect), stroke = 'black', fill = 'white') // TODO find example
         }
-        else (style = printStrokeStyle (effect), stroke='white', fill = hasFill ? 'white' : 'black')
+        else (style = strokeStyleCss (effect), stroke = 'white', fill = hasFill ? 'white' : 'black')
         setProps (pathEl, { d, style, stroke, fill })
         setProps (mask, { transform, id:maskId, maskUnits:'userSpaceOnUse', x:0, y:0, width:6528, height:6528 })
         mask.append (pathEl)
@@ -225,10 +233,10 @@ function renderIcon (icon, id = idGen ()) {
     }
 
     else {
-  		var x1 = -64.0 *102
-  		var x2 =  64.0 *102
-  		var y1 = -64.0 *102
-  		var y2 = -64.0 *102
+  		var x1 = -64 * 102
+  		var x2 =  64 * 102
+  		var y1 = -64 * 102
+  		var y2 = -64 * 102
       setProps (grel, { x1, x2, y1, y2 }) // TODO
     }
 
@@ -242,14 +250,13 @@ function renderIcon (icon, id = idGen ()) {
 
 } // end Renderer
 
+
 // Exports
 // -------
 
 export {
-  colorCss,
-  styleCss,
-  gradientCss,
-  transformAttribute,
-  pathDataAttribute,
+  colorCss, gradientCss, styleCss,
+  transformAttribute, pathDataAttribute,
   Renderer,
+  refKey,
 }

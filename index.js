@@ -5,10 +5,10 @@ const log = console.log.bind (console)
 // ----------
 
 const createElementNS = (ns, tagName) => 
-  setProto ({ tagName, attributes:{}, children:[] }, Elem.prototype)
+  setProto ({ tagName, attributes:{}, childNodes:[] }, Elem.prototype)
 
 class Elem {
-  append (...children) { this.children.splice (Infinity, 0, ...children) }
+  append (...childNodes) { this.childNodes.splice (Infinity, 0, ...childNodes) }
   setAttribute (k, v) { this.attributes [k] = v }
   toSVGString () { return toSVGString (this) }
 }
@@ -17,12 +17,12 @@ function toSVGString (elem) {
   return [...renderIt (elem)] .join ('')
 }
 
-function* renderIt ({ tagName, attributes:atts, children }) {
+function* renderIt ({ tagName, attributes:atts, childNodes }) {
   yield `<${tagName}`
   for (const k in atts) yield ` ${k}="${atts[k]}"` // TODO: escapes
-  if (children.length) {
+  if (childNodes.length) {
     yield '>'
-    for (const child of children) yield* renderIt (child)
+    for (const child of childNodes) yield* renderIt (child)
     yield `</${tagName}>`
   }
   else yield '/>'
@@ -33,9 +33,20 @@ function* renderIt ({ tagName, attributes:atts, children }) {
 // Exports
 // -------
 
+import {
+  parseIcon,
+  Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
+  colorFormats, gradientTypes, lineCaps, lineJoins } from './src/hvif.js'
+
 const version = '1.0.0-beta'
-import * as hvif from './src/hvif.js'
 import * as svg from './src/svg.js'
 const svg_ = svg.Renderer (createElementNS)
 Object.assign (svg_, svg)
-export { version, hvif, svg_ as svg }
+
+export {
+  version, 
+  parseIcon,
+  Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
+  colorFormats, gradientTypes, lineCaps, lineJoins,
+  svg_ as svg
+}
