@@ -1,6 +1,6 @@
 import * as hvif from './hvif.js'
 const { setPrototypeOf:setProto, entries } = Object
-const { colorFormats, gradientTypes } = hvif
+const { gradientTypes } = hvif
 const log = console.log.bind (console)
 
 
@@ -10,18 +10,12 @@ const log = console.log.bind (console)
 // CSS values
 // ----------
 
-function colorCss ({ type, values: bytes = [] }) {
-  if (type === colorFormats.KA || type === colorFormats.K)
-    bytes = [bytes[0], bytes[0]] .concat (bytes)
-  return '#' + (bytes.map (_ => _.toString (16) .padStart (2, '0')) .join (''))
-}
-
 function styleCss (style) {
-  return style instanceof hvif.Gradient ? gradientCss (style) : colorCss (style)
+  return style instanceof hvif.Gradient ? gradientCss (style) : String (style)
 }
 
 function gradientCss ({ type, stops }) {
-  const sts = stops.map (({ color, offset }) => colorCss (color) + ' ' + offset/2.55+'%')
+  const sts = stops.map (({ color, offset }) => String (color) + ' ' + offset/2.55 + '%')
   if (type !== gradientTypes.linear && type !== gradientTypes.radial && type !== gradientTypes.conic) {
     const names = ['linear', 'radial', 'diamond', 'conic', 'xy', 'sqrtxy']
     console.warn ('Rendering a', names[type], 'gradient as a radial css gradient instead.')
@@ -214,7 +208,7 @@ function Renderer (createElementNS) {
        return { value:`url(#${gradientId})`, gradient }
     }
     else if (style instanceof hvif.Color)
-      return { value: colorCss (style) }
+      return { value: String (style) }
   }
 
 
@@ -233,16 +227,16 @@ function Renderer (createElementNS) {
     }
 
     else {
-  		var x1 = -64 * 102
-  		var x2 =  64 * 102
-  		var y1 = -64 * 102
-  		var y2 = -64 * 102
+  		const x1 = -64 * 102
+  		const x2 =  64 * 102
+  		const y1 = -64 * 102
+  		const y2 = -64 * 102
       setProps (grel, { x1, x2, y1, y2 }) // TODO
     }
 
     for (const { color, offset } of stops) {
       const st = Svg ('stop')
-      setProps (st, { offset:(offset/2.55 + '%'), 'stop-color': colorCss (color) })
+      setProps (st, { offset:(offset/2.55 + '%'), 'stop-color': String (color) })
       grel.append (st)
     }
     return grel
@@ -255,7 +249,7 @@ function Renderer (createElementNS) {
 // -------
 
 export {
-  colorCss, gradientCss, styleCss,
+  gradientCss, styleCss,
   transformAttribute, pathDataAttribute,
   Renderer,
   refKey,

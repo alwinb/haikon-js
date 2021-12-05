@@ -36,7 +36,7 @@ function* renderIt ({ tagName, attributes:atts, childNodes }) {
 import {
   parseIcon,
   Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
-  colorFormats, gradientTypes, lineCaps, lineJoins } from './src/hvif.js'
+  gradientTypes, lineCaps, lineJoins } from './src/hvif.js'
 
 const version = '1.0.0-beta'
 import * as svg from './src/svg.js'
@@ -47,6 +47,6 @@ export {
   version, 
   parseIcon,
   Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
-  colorFormats, gradientTypes, lineCaps, lineJoins,
+  gradientTypes, lineCaps, lineJoins,
   svg_ as svg
 }

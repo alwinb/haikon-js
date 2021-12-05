@@ -25,7 +25,6 @@ API
 
 ### Constants
 
-- colorFormats: { RGB, RGBA, K, KA }
 - gradientTypes: { linear, radial, diamond, conic, xy, sqrtxy }
 - lineCaps: { butt, square, round }
 - lineJoins: { miter, miterRevert, round, bevel, miterRound }
@@ -33,7 +32,7 @@ API
 ### Object model
 
 - Icon { styles, paths, shapes, filename }
-- Color { type, values }
+- Color { values: [r, g, b, a] }
 - Gradient { type, ?matrix, stops }
 - Stop { offset, color }
 - Polygon { points, closed }

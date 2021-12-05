@@ -132,7 +132,7 @@ function paletteElement (style, styleIndex, view) {
   }
   else {
     el.classList.add ('color')
-    el.style.background = HaikonSvg.colorCss (style)
+    el.style.background = String (style)
   }
 
   el.addEventListener ('mousedown', evt => {

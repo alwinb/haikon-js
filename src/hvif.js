@@ -5,9 +5,6 @@ const log = console.log.bind (console)
 // Constants
 // ---------
 
-const colorFormats =
-  { RGBA:1, RGB:3, KA:4, K:5 }
-
 const gradientTypes =
   { linear:0, radial:1, diamond:2, conic:3, xy:4, sqrtxy:5 }
 
@@ -28,9 +25,8 @@ function Icon (styles, paths, shapes, filename) {
   this.filename = filename
 }
 
-function Color (type, values) {
-  this.type = type
-  this.values = [...values]
+function Color (r, g, b, a) {
+  this.values = [r, g, b, a]
 }
 
 function Gradient (type, matrix, stops) {
@@ -69,6 +65,16 @@ function Stroke (width, lineJoin) {
   // ... lineJoin, lineCap, miterLimit
 }
 
+// ... methods
+
+Color.prototype = {
+  toString () {
+    const [r,g,b,a] = this.values.map (_ => _ .toString (16) .padStart (2, '0'))
+    return `#${r}${g}${b}${a}`
+  }
+}
+
+
 
 // HVIF file format
 // ----------------
@@ -85,12 +91,11 @@ function Stroke (width, lineJoin) {
 // followed by RGBA (4bytes), RGB (3 bytes), K (greyscale, 1 byte) or
 // as KA (greyscale with alpha, 2 bytes). A Style is either a color, or a gradient. 
 
+const colorFormats =
+  { RGBA:1, RGB:3, KA:4, K:5 }
+
 const styleTags =
   { RGBA:1, RGB:3, KA:4, K:5, GRADIENT:2 }
-
-const colorFormatSizes =
-  [0, 4, 0, 3, 2, 1] // number of bytes per colorFormat
-
 
 // ## Gradients
 
@@ -163,9 +168,6 @@ const shapeFlags = {
 
 const transformerTags =
   { AFFINE:20, CONTOUR:21, PERSPECTIVE:22, STROKE:23 }
-
-// Lines - TODO find out what miterRevert and MiterRound are
-
 
 /*
 Matrix: float24 times six
@@ -306,9 +308,24 @@ function parseIcon (data, filename = null) {
   // Called from readStyle
   
   function readColorOfType (format) {
-    if (format !== 2 && format <= 5)
-      return new Color (format, data.slice (pos, pos += colorFormatSizes [format]))
-    else throw new Error (`unknown color format: ${format}`)
+    switch (format) {
+      case colorFormats.K:
+        const byte = data [pos++]
+        return new Color (byte, byte, byte, 255)
+
+      case colorFormats.KA:
+        const byte1 = data [pos++]
+        return new Color (byte1, byte1, byte1, data [pos++])
+
+      case colorFormats.RGB:
+        return new Color (data[pos++], data[pos++], data[pos++], 255)
+
+      case colorFormats.RGBA:
+        return new Color (data[pos++], data[pos++], data[pos++], data[pos++])
+
+      default:
+        throw new Error (`unknown color format: ${format}`)
+    }
   }
 
   function readGradient () {
@@ -437,4 +454,4 @@ function parseFloat24 ([b1, b2, b3]) {
 export {
   parseIcon,
   Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
-  colorFormats, gradientTypes, lineCaps, lineJoins }
+  gradientTypes, lineCaps, lineJoins }
