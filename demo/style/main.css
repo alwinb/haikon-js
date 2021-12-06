@@ -120,8 +120,7 @@ body {
   /* assume .-track */
   font-size:15px;
   color:#222;
-  margin:4rem 0;
-  background: linear-gradient(to bottom, #0002 -10rem, #0002 1rem, #0000 1rem, #0000) no-repeat;
+  margin:3rem 0;
   --track-left:5rem;
   --track-right:5rem;
 }
