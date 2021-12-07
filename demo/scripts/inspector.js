@@ -1,7 +1,7 @@
 import * as Haikon from '../../src/hvif.js'
 import * as HaikonSvg from '../../src/svg.js'
 const assign = Object.assign
-const { renderIcon } = HaikonSvg.Renderer (document.createElementNS.bind (document))
+
 
 // Icon Inspector
 // ==============
@@ -42,7 +42,7 @@ class Inspector {
       this.layers.insertBefore (layerElement (shape, shapeIndex, icon, this), this.layers.firstChild)
     })
 
-    const svg = renderIcon (icon) .getElementsByTagName ('svg') [0]
+    const svg = HaikonSvg.renderIcon (icon) .getElementsByTagName ('svg') [0]
     //const viewBox = '0 0 6528 6528'
     const viewBox = '-204 -204 6936 6936'
       setProps (svg, { viewBox, style:null })
@@ -100,8 +100,8 @@ function layerElement (shape, shapeIndex, icon, view) {
   ts.forEach (_ => {
     const name = _ instanceof Haikon.Stroke ? 'stroke'
       : _ instanceof Haikon.Contour ? 'contour'
-      // : _ instanceof Haikon.Fill ? 'fill'
-      : _._tag
+      : _ instanceof Haikon.Fill ? 'fill'
+      : '<unknown effect>'
     labels.push (name)
   })
 

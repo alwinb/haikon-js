@@ -38,14 +38,13 @@
 
 <!-- this is not in the head so that it uses the in-page console, just for debugging -->
 <script type=module>
-const log = console.log.bind (console)
 
 import { parseIcon } from '../src/hvif.js'
-import { Renderer } from '../src/svg.js'
-const renderIcon = Renderer (document.createElementNS.bind (document)) .renderIcon
-
-
+import { Renderer, renderIcon } from '../src/svg.js'
 import { Inspector } from "./scripts/inspector.js"
+
+const log =
+  console.log.bind (console)
 
 function getIcons (url, callback) {
   const req = new XMLHttpRequest ()
@@ -56,7 +55,7 @@ function getIcons (url, callback) {
   req.send ()
 }
 
-var iconsToInspect = {
+const iconsToInspect = {
   'Misc_Antenna': 0,
   'App_Icon-O-Matic': 0,
   'App_BeVexed': 0,
@@ -70,6 +69,7 @@ var iconsToInspect = {
   'Action_GoBack': 0,
   'Misc_TCF_LightBulb': 0,
   'Misc_IntelRenderer': 0,
+  'Misc_RadeonRenderer': 0,
   'Website_Comment-add': 0,
   'Server_Syslog': 0,
   'App_Tracker': 0,

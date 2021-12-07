@@ -65,6 +65,10 @@ function Stroke (width, lineJoin) {
   // ... lineJoin, lineCap, miterLimit
 }
 
+function Fill () {
+  // No properties
+}
+
 // ... methods
 
 Color.prototype = {
@@ -248,11 +252,10 @@ function parseIcon (data, filename = null) {
       shape.effects = readEffects (count)
     }
 
-    // if (! shape.effects.length)
-    //   shape.effects[0] = new Fill ()
+    if (! shape.effects.length)
+      shape.effects[0] = new Fill ()
 
     // TODO hinting transformer?
-    // shape._startPos = pos
     return shape
   }
 
@@ -453,5 +456,5 @@ function parseFloat24 ([b1, b2, b3]) {
 
 export {
   parseIcon,
-  Color, Gradient, Polygon, Path, Shape, Contour, Stroke,
+  Color, Gradient, Polygon, Path, Shape, Contour, Stroke, Fill,
   gradientTypes, lineCaps, lineJoins }
